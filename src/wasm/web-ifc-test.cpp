@@ -267,9 +267,13 @@ int main()
     // std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#ifcrevolvedarea/IfcSurfaceCurveSweptAreaSolid.ifc");
     std::string content = ReadFile("C:/Data/Ifc/_DebugSupport/Lento_o_Fermo/C1044_D_ST_GEN_BIM_CB_00_0000.ifc");
     // std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#ifcrevolvedarea/v41.ifc");
-	
+    // std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#398 solved/398.ifc");
+    // std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#384/384.ifc");
+    std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#359/359.ifc");
+
     webifc::utility::LoaderSettings set;
     set.COORDINATE_TO_ORIGIN = true;
+    
 
     webifc::utility::LoaderErrorHandler errorHandler;
     webifc::schema::IfcSchemaManager schemaManager;
@@ -308,6 +312,9 @@ int main()
     // SpecificLoadTest(loader, geometryLoader, 2736); // 394
     SpecificLoadTest(loader, geometryLoader, 112251); // IfcSurfaceCurveSweptAreaSolid
     // SpecificLoadTest(loader, geometryLoader, 112077); // v41
+    // SpecificLoadTest(loader, geometryLoader, 527); // 398
+    // SpecificLoadTest(loader, geometryLoader, 1342624); //384
+    SpecificLoadTest(loader, geometryLoader, 10349); //359
 
     // auto meshes = LoadAllTest(loader, geometryLoader);
     // auto alignments = GetAlignments(loader, geometryLoader);
