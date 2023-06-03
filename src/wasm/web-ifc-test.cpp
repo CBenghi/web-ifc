@@ -245,6 +245,7 @@ void TestTriangleDecompose()
 int main()
 {
     std::cout << "Hello web IFC test!" << std::endl;
+    // std::cout << "Running in " << std::filesystem::current_path() << std::endl;
 
     // TestTriangleDecompose();
 
@@ -263,7 +264,8 @@ int main()
     // std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#sweptdisk/IfcSurfaceCurveSweptAreaSolid.ifc");
     // std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#bool testing/15.ifc");
     // std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#ifcrevolvedarea/394.ifc");
-    std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#ifcrevolvedarea/IfcSurfaceCurveSweptAreaSolid.ifc");
+    // std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#ifcrevolvedarea/IfcSurfaceCurveSweptAreaSolid.ifc");
+    std::string content = ReadFile("C:/Data/Ifc/_DebugSupport/Lento_o_Fermo/C1044_D_ST_GEN_BIM_CB_00_0000.ifc");
     // std::string content = ReadFile("C:/Users/qmoya/Desktop/PROGRAMES/VSCODE/IFC.JS/issues/#ifcrevolvedarea/v41.ifc");
 	
     webifc::utility::LoaderSettings set;
@@ -274,12 +276,12 @@ int main()
     webifc::parsing::IfcLoader loader(set.TAPE_SIZE, set.MEMORY_LIMIT, errorHandler, schemaManager);
 
     auto start = ms();
-    loader.LoadFile([&](char *dest, size_t sourceOffset, size_t destSize)
-                    {
-                        uint32_t length = std::min(content.size() - sourceOffset, destSize);
-                        memcpy(dest, &content[sourceOffset], length);
-
-                        return length; });
+    loader.LoadFile([&](char* dest, size_t sourceOffset, size_t destSize)
+        {
+            uint32_t length = std::min(content.size() - sourceOffset, destSize);
+            memcpy(dest, &content[sourceOffset], length);
+            return length;
+        });
     // std::ofstream outputStream("D:/web-ifc/benchmark/ifcfiles/output.ifc");
     // outputStream << loader.DumpAsIFC();
     // exit(0);
@@ -304,7 +306,7 @@ int main()
     // SpecificLoadTest(loader, geometryLoader, 2591); // IfcSurfaceCurveSweptAreaSolid
     // SpecificLoadTest(loader, geometryLoader, 4822); // 394 upsideown
     // SpecificLoadTest(loader, geometryLoader, 2736); // 394
-    SpecificLoadTest(loader, geometryLoader, 2837); // IfcSurfaceCurveSweptAreaSolid
+    SpecificLoadTest(loader, geometryLoader, 112251); // IfcSurfaceCurveSweptAreaSolid
     // SpecificLoadTest(loader, geometryLoader, 112077); // v41
 
     // auto meshes = LoadAllTest(loader, geometryLoader);
