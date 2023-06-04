@@ -61,11 +61,6 @@ namespace webifc::io
 
         double maxSize = std::max(width, height);
 
-        if (width == 0 && height == 0)
-        {
-            printf("asdf\n");
-        }
-
         for (auto &pt : input)
         {
                 // here we invert Y, since the canvas +y is down, but makes more sense to think about +y as up
@@ -419,12 +414,6 @@ namespace webifc::io
 
         double width = max.x - min.x;
         double height = max.y - min.y;
-
-        if (width == 0 && height == 0)
-        {
-            printf("asdf");
-        }
-
         return {min, max};
     }
 

@@ -86,6 +86,22 @@ void ProcessOneFile(std::string filepath)
 
     start = ms();
     webifc::geometry::IfcGeometryProcessor geometryLoader(loader,errorHandler,schemaManager,set.CIRCLE_SEGMENTS,set.COORDINATE_TO_ORIGIN);
+    // std::vector<webifc::geometry::IfcFlatMesh> meshes;
+    for (auto type : schemaManager.GetIfcElementList())
+    {
+        auto elements = loader.GetExpressIDsWithType(type);
+        for (uint32_t i = 0; i < elements.size(); i++)
+        {
+            webifc::geometry::IfcFlatMesh mesh = geometryLoader.GetFlatMesh(elements[i]);
+            for (auto& geom : mesh.geometries)
+            {
+                auto& flatGeom = geometryLoader.GetGeometry(geom.geometryExpressID);
+                flatGeom.GetVertexData();
+            }
+            geometryLoader.Clear(); // removing the data
+            //meshes.push_back(std::move(mesh));
+        }
+    }
     auto errors = errorHandler.GetErrors();
     errorHandler.ClearErrors();
     for (auto error : errors)
@@ -96,7 +112,6 @@ void ProcessOneFile(std::string filepath)
 
     std::cout << " - Generating geometry took " << time << "ms" << std::endl;
 }
-
 
 void Benchmark()
 {

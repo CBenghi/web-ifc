@@ -31,15 +31,11 @@ namespace webifc::geometry {
 		if (fvertexData.size() != vertexData.size())
 		{
 			fvertexData.resize(vertexData.size());
-			for (size_t i = 0; i < vertexData.size(); i += 6)
+			// vertexData is a multiple of VERTEX_FORMAT_SIZE_FLOATS, which can change
+			// from version to version, we trust Fuzzy-Bool and copy the whole collection
+			for (size_t i = 0; i < vertexData.size(); i ++)
 			{
-				fvertexData[i + 0] = vertexData[i + 0];
-				fvertexData[i + 1] = vertexData[i + 1];
-				fvertexData[i + 2] = vertexData[i + 2];
-
-				fvertexData[i + 3] = vertexData[i + 3];
-				fvertexData[i + 4] = vertexData[i + 4];
-				fvertexData[i + 5] = vertexData[i + 5];
+				fvertexData[i] = vertexData[i];
 			}
 
 			// cleanup

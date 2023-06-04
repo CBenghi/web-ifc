@@ -12,7 +12,7 @@ else()
 	set(RELEASE true)
 endif()
 
-project (web-ifc LANGUAGES CXX)
+project (web-ifc LANGUAGES CXX) 
 enable_testing ()
 
 set (CMAKE_CXX_STANDARD 17)
@@ -56,7 +56,7 @@ FetchContent_MakeAvailable(cdt)
 FetchContent_GetProperties(cdt)
 
 Message("Downloading FUZZY")
-FetchContent_Declare(fuzzy GIT_REPOSITORY "https://github.com/tomvandig/fuzzy-bools" GIT_TAG "a52c0f0c0667b7c875ae44e91e63a33c1813be64" SOURCE_SUBDIR "../")
+FetchContent_Declare(fuzzy GIT_REPOSITORY "https://github.com/CBenghi/fuzzy-bools" GIT_TAG "b1ebfdaf254a1b1fcc1b7e09a0450da96054d552" SOURCE_SUBDIR "../")
 FetchContent_MakeAvailable(fuzzy)
 FetchContent_GetProperties(fuzzy)
 file(RENAME ${fuzzy_SOURCE_DIR}/src ${fuzzy_SOURCE_DIR}/fuzzy RESULT $res)
