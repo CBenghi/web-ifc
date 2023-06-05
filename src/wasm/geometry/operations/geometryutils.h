@@ -56,10 +56,10 @@ namespace webifc::geometry {
 	}
 
 
-		//! This implementation generates much more vertices than needed, and does not have smoothed normals
-		// TODO: Review rotate90 value, as it should be inferred from IFC but the source data had not been identified yet
-		// An arbitrary value has been added in IFCSURFACECURVESWEPTAREASOLID but this is a bad solution
-	inline	IfcGeometry Sweep(const bool closed, const IfcProfile &profile, const IfcCurve &directrix, const glm::dvec3 &initialDirectrixNormal = glm::dvec3(0), const bool rotate90 = false)
+	//! This implementation generates much more vertices than needed, and does not have smoothed normals
+	// TODO: Review rotate90 value, as it should be inferred from IFC but the source data had not been identified yet
+	// An arbitrary value has been added in IFCSURFACECURVESWEPTAREASOLID but this is a bad solution
+	inline	IfcGeometry Sweep(const bool closed, const IfcProfile &profile, const IfcCurve &directrix, utility::LoaderErrorHandler &errorHandler, const glm::dvec3 &initialDirectrixNormal = glm::dvec3(0), const bool rotate90 = false)
 	{
 		IfcGeometry geom;
 
@@ -251,8 +251,10 @@ namespace webifc::geometry {
 					glm::dvec3 tl = c2[j - 1];
 					glm::dvec3 tr = c2[j - 0];
 
-					geom.AddFace(tl, br, bl);
-					geom.AddFace(tl, tr, br);
+					if (!geom.AddFace(tl, br, bl))
+						errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
+					if (!geom.AddFace(tl, tr, br))
+						errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
 				}
 			}
 
@@ -329,10 +331,9 @@ namespace webifc::geometry {
 			if (bounds.size() == 1 && bounds[0].curve.points.size() == 3)
 			{
 				auto c = bounds[0].curve;
-
 				// size_t offset = geometry.numPoints;
-
-				geometry.AddFace(c.points[0], c.points[1], c.points[2]);
+				if (!geometry.AddFace(c.points[0], c.points[1], c.points[2]))
+					_errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
 			}
 			else if (bounds.size() > 0 && bounds[0].curve.points.size() >= 3)
 			{
@@ -433,7 +434,8 @@ namespace webifc::geometry {
 
 				for (size_t i = 0; i < indices.size(); i += 3)
 				{
-					geometry.AddFace(offset + indices[i + 0], offset + indices[i + 1], offset + indices[i + 2]);
+					if (!geometry.AddFace(offset + indices[i + 0], offset + indices[i + 1], offset + indices[i + 2]))
+						_errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face", expressID);
 				}
 			}
 			else
@@ -505,11 +507,13 @@ namespace webifc::geometry {
 				{
 					if (flipWinding)
 					{
-						geom.AddFace(offset + indices[i + 0], offset + indices[i + 2], offset + indices[i + 1]);
+						if (!geom.AddFace(offset + indices[i + 0], offset + indices[i + 2], offset + indices[i + 1]))
+							_errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
 					}
 					else
 					{
-						geom.AddFace(offset + indices[i + 0], offset + indices[i + 1], offset + indices[i + 2]);
+						if(!geom.AddFace(offset + indices[i + 0], offset + indices[i + 1], offset + indices[i + 2]))
+							_errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
 					}
 				}
 
@@ -531,7 +535,7 @@ namespace webifc::geometry {
 						double ldotn = glm::dot(transDir, cuttingPlaneNormal);
 						if (ldotn == 0)
 						{
-							printf("0 direction in extrude\n");
+							_errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "0 direction in extrude");
 						}
 						else
 						{
@@ -549,11 +553,13 @@ namespace webifc::geometry {
 				{
 					if (flipWinding)
 					{
-						geom.AddFace(offset + indices[i + 0], offset + indices[i + 1], offset + indices[i + 2]);
+						if (!geom.AddFace(offset + indices[i + 0], offset + indices[i + 1], offset + indices[i + 2]))
+							_errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
 					}
 					else
 					{
-						geom.AddFace(offset + indices[i + 0], offset + indices[i + 2], offset + indices[i + 1]);
+						if (!geom.AddFace(offset + indices[i + 0], offset + indices[i + 2], offset + indices[i + 1]))
+							_errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
 					}
 				}
 			}
@@ -574,13 +580,15 @@ namespace webifc::geometry {
 				uint32_t tr = capSize + i - 0;
 
 				// this winding should be correct
-				geom.AddFace(geom.GetPoint(tl),
+				if (!geom.AddFace(geom.GetPoint(tl),
 					geom.GetPoint(br),
-					geom.GetPoint(bl));
+					geom.GetPoint(bl)))
+					_errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
 
-				geom.AddFace(geom.GetPoint(tl),
+				if (!geom.AddFace(geom.GetPoint(tl),
 					geom.GetPoint(tr),
-					geom.GetPoint(br));
+					geom.GetPoint(br)))
+					_errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
 			}
 
 			return geom;
@@ -670,8 +678,10 @@ namespace webifc::geometry {
 			}
 		}
 
-		inline	void flattenRecursive(IfcComposedMesh &mesh, std::unordered_map<uint32_t, IfcGeometry> &geometryMap, std::vector<IfcGeometry> &geoms, glm::dmat4 mat)
+		// todo: cb return error 
+		inline bool flattenRecursive(IfcComposedMesh &mesh, std::unordered_map<uint32_t, IfcGeometry> &geometryMap, std::vector<IfcGeometry> &geoms, glm::dmat4 mat)
 		{
+			bool success = true;
 			glm::dmat4 newMat = mat * mesh.transformation;
 
 			bool transformationBreaksWinding = MatrixFlipsTriangles(newMat);
@@ -695,11 +705,13 @@ namespace webifc::geometry {
 
 						if (transformationBreaksWinding)
 						{
-							newGeom.AddFace(b, a, c);
+							if (!newGeom.AddFace(b, a, c))
+								success = false;
 						}
 						else
 						{
-							newGeom.AddFace(a, b, c);
+							if (!newGeom.AddFace(a, b, c))
+								success = false;
 						}
 					}
 
@@ -709,8 +721,10 @@ namespace webifc::geometry {
 
 			for (auto &c : mesh.children)
 			{
-				flattenRecursive(c, geometryMap, geoms, newMat);
+				if (!flattenRecursive(c, geometryMap, geoms, newMat))
+					success = false;
 			}
+			return success;
 		}
 
 		inline	std::vector<IfcGeometry> flatten(IfcComposedMesh &mesh, std::unordered_map<uint32_t, IfcGeometry> &geometryMap, glm::dmat4 mat = glm::dmat4(1))

@@ -18,9 +18,10 @@ namespace webifc::geometry
 {
 
 	// TODO: review and simplify
-	inline void TriangulateRevolution(IfcGeometry &geometry, std::vector<IfcBound3D> &bounds, IfcSurface &surface)
+	// todo: cb: consider return value in calling functions
+	inline bool TriangulateRevolution(IfcGeometry &geometry, std::vector<IfcBound3D> &bounds, IfcSurface &surface)
 	{
-			// First we get the revolution data
+		// First we get the revolution data
 
 		glm::dvec3 cent = surface.RevolutionSurface.Direction[3];
 		glm::dvec3 vecX = glm::normalize(surface.RevolutionSurface.Direction[0]);
@@ -179,19 +180,24 @@ namespace webifc::geometry
 				newPoints[r].push_back(newPt);
 			}
 		}
+		bool success = true;
 		for (int r = 0; r < numRots - 1; r++)
 		{
 			int r1 = r + 1;
 			for (size_t s = 0; s < newPoints[r].size() - 1; s++)
 			{
-				geometry.AddFace(newPoints[r][s], newPoints[r][s + 1], newPoints[r1][s]);
-				geometry.AddFace(newPoints[r1][s], newPoints[r][s + 1], newPoints[r1][s + 1]);
+				if (!geometry.AddFace(newPoints[r][s], newPoints[r][s + 1], newPoints[r1][s]))
+					success = false;
+				if (!geometry.AddFace(newPoints[r1][s], newPoints[r][s + 1], newPoints[r1][s + 1]))
+					success = false;
 			}
 		}
+		return success;
 	}
 
-		// TODO: review and simplify
-	inline void TriangulateCylindricalSurface(IfcGeometry &geometry, std::vector<IfcBound3D> &bounds, IfcSurface &surface)
+	// TODO: review and simplify
+	// todo: cb: consider return value in calling code
+	inline bool TriangulateCylindricalSurface(IfcGeometry &geometry, std::vector<IfcBound3D> &bounds, IfcSurface &surface)
 	{
 			// First we get the cylinder data
 
@@ -430,19 +436,24 @@ namespace webifc::geometry
 			newPoints[r].push_back(newPt);
 		}
 
+		bool success = true;
 		for (int r = 0; r < numRots - 1; r++)
 		{
 			int r1 = r + 1;
 			for (size_t s = 0; s < newPoints[r].size() - 1; s++)
 			{
-				geometry.AddFace(newPoints[r][s], newPoints[r][s + 1], newPoints[r1][s]);
-				geometry.AddFace(newPoints[r1][s], newPoints[r][s + 1], newPoints[r1][s + 1]);
+				if (!geometry.AddFace(newPoints[r][s], newPoints[r][s + 1], newPoints[r1][s]))
+					success = false;
+				if (!geometry.AddFace(newPoints[r1][s], newPoints[r][s + 1], newPoints[r1][s + 1]))
+					success = false;
 			}
 		}
+		return success;
 	}
 
-		// TODO: review and simplify
-	inline void TriangulateExtrusion(IfcGeometry &geometry, std::vector<IfcBound3D> &bounds, IfcSurface &surface)
+	// TODO: review and simplify
+	// todo: use feedback in calling functions
+	inline bool TriangulateExtrusion(IfcGeometry &geometry, std::vector<IfcBound3D> &bounds, IfcSurface &surface)
 	{
 			// NO EXAMPLE FILES ABOUT THIS CASE
 
@@ -450,7 +461,7 @@ namespace webifc::geometry
 
 		double len = surface.ExtrusionSurface.Length;
 		glm::dvec3 dir = surface.ExtrusionSurface.Direction;
-
+		bool success = true;
 		if (!surface.ExtrusionSurface.Profile.isComposite)
 		{
 			for (size_t j = 0; j < surface.ExtrusionSurface.Profile.curve.points.size() - 1; j++)
@@ -471,14 +482,16 @@ namespace webifc::geometry
 					npx,
 					npy,
 					npz);
-				geometry.AddFace(
-					glm::dvec3(surface.ExtrusionSurface.Profile.curve.points[j].x,surface.ExtrusionSurface.Profile.curve.points[j].y, 0),
-					glm::dvec3(surface.ExtrusionSurface.Profile.curve.points[j2].x,surface.ExtrusionSurface.Profile.curve.points[j2].y, 0),
-					nptj1);
-				geometry.AddFace(
+				if (!geometry.AddFace(
+					glm::dvec3(surface.ExtrusionSurface.Profile.curve.points[j].x, surface.ExtrusionSurface.Profile.curve.points[j].y, 0),
+					glm::dvec3(surface.ExtrusionSurface.Profile.curve.points[j2].x, surface.ExtrusionSurface.Profile.curve.points[j2].y, 0),
+					nptj1))
+					success = false;
+				if (!geometry.AddFace(
 					glm::dvec3(surface.ExtrusionSurface.Profile.curve.points[j2].x,surface.ExtrusionSurface.Profile.curve.points[j2].y, 0),
 					nptj2,
-					nptj1);
+					nptj1))
+					success = false;
 			}
 		}
 		else
@@ -503,17 +516,20 @@ namespace webifc::geometry
 						npx,
 						npy,
 						npz);
-					geometry.AddFace(
+					if (!geometry.AddFace(
 						glm::dvec3(surface.ExtrusionSurface.Profile.profiles[i].curve.points[j].x,surface.ExtrusionSurface.Profile.profiles[i].curve.points[j].y, 0),
 						glm::dvec3(surface.ExtrusionSurface.Profile.profiles[i].curve.points[j2].x,surface.ExtrusionSurface.Profile.profiles[i].curve.points[j2].y, 0),
-						nptj1);
-					geometry.AddFace(
+						nptj1))
+						success = false;
+					if (!geometry.AddFace(
 						glm::dvec3(surface.ExtrusionSurface.Profile.profiles[i].curve.points[j2].x,surface.ExtrusionSurface.Profile.profiles[i].curve.points[j2].y, 0),
 						nptj2,
-						nptj1);
+						nptj1))
+						success = false;
 				}
 			}
 		}
+		return success;
 	}
 
 	inline double InverseMethod(glm::dvec3 pt, tinynurbs::RationalSurface3d srf, double pr, double rotations, double minError, double maxError,
@@ -592,12 +608,12 @@ namespace webifc::geometry
 	}
 
 		// TODO: review and simplify
-	inline void TriangulateBspline(IfcGeometry &geometry, std::vector<IfcBound3D> &bounds, IfcSurface &surface)
+		
+	/// <returns>true if all success, false on any warning</returns>
+	inline bool TriangulateBspline(IfcGeometry &geometry, std::vector<IfcBound3D> &bounds, IfcSurface &surface)
 	{
-			//			double limit = 1e-4;
-
-			// First: We define the Nurbs surface
-
+		//			double limit = 1e-4;
+		// First: We define the Nurbs surface
 		tinynurbs::RationalSurface3d srf;
 		srf.degree_u = surface.BSplineSurface.UDegree;
 		srf.degree_v = surface.BSplineSurface.VDegree;
@@ -648,10 +664,9 @@ namespace webifc::geometry
 		}
 
 			// If the NURBS surface is valid we continue
-
+		bool success = true;
 		if (tinynurbs::surfaceIsValid(srf))
 		{
-
 				// Find projected boundary using NURBS inverse evaluation
 
 			using Point = std::array<double, 2>;
@@ -718,6 +733,7 @@ namespace webifc::geometry
 				indices = newIndices;
 			}
 
+
 			for (size_t i = 0; i < indices.size(); i += 3)
 			{
 				Point p0 = uvBoundaryValues[0][indices[i + 0]];
@@ -726,8 +742,14 @@ namespace webifc::geometry
 				glm::dvec3 pt00 = tinynurbs::surfacePoint(srf, p0[0], p0[1]);
 				glm::dvec3 pt01 = tinynurbs::surfacePoint(srf, p1[0], p1[1]);
 				glm::dvec3 pt10 = tinynurbs::surfacePoint(srf, p2[0], p2[1]);
-				geometry.AddFace(pt00, pt01, pt10);
+				if (!geometry.AddFace(pt00, pt01, pt10))
+					success = true;
 			}
 		}
+		else
+		{
+			success = false;
+		}
+		return success;
 	}
 }

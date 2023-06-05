@@ -556,8 +556,8 @@ namespace webifc::geometry
                         int i1 = indices[i + 0] - 1;
                         int i2 = indices[i + 1] - 1;
                         int i3 = indices[i + 2] - 1;
-
-                        geom.AddFace(points[i1], points[i2], points[i3]);
+                        if (!geom.AddFace(points[i1], points[i2], points[i3]))
+                            _errorHandler.ReportError(utility::LoaderErrorType::UNSPECIFIED, "zero area face");
                     }
 
                     // DumpIfcGeometry(geom, "test.obj");
@@ -642,7 +642,7 @@ namespace webifc::geometry
 
                     std::reverse(profile.curve.points.begin(), profile.curve.points.end());
                     
-                    IfcGeometry geom = Sweep(closed, profile, directrix, surface.normal(), true);
+                    IfcGeometry geom = Sweep(closed, profile, directrix, _errorHandler, surface.normal(), true );
                     
                     _expressIDToGeometry[line.expressID] = geom;
                     mesh.expressID = line.expressID;
@@ -689,7 +689,7 @@ namespace webifc::geometry
                     IfcProfile profile;
                     profile.curve = GetCircleCurve(radius, _circleSegments);
 
-                    IfcGeometry geom = Sweep(closed, profile, directrix);
+                    IfcGeometry geom = Sweep(closed, profile, directrix, _errorHandler);
 
                     _expressIDToGeometry[line.expressID] = geom;
                     mesh.expressID = line.expressID;
@@ -721,13 +721,13 @@ namespace webifc::geometry
 
                     if (!profile.isComposite)
                     {
-                        geom = Sweep(closed, profile, directrix, axis);
+                        geom = Sweep(closed, profile, directrix, _errorHandler, axis);
                     }
                     else
                     {
                         for (uint32_t i = 0; i < profile.profiles.size(); i++)
                         {
-                            IfcGeometry geom_t = Sweep(closed, profile.profiles[i], directrix, axis);
+                            IfcGeometry geom_t = Sweep(closed, profile.profiles[i], directrix, _errorHandler, axis);
                             geom.AddGeometry(geom_t);
                         }
                     }

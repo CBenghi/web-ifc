@@ -50,18 +50,20 @@ namespace webifc::geometry {
 		return (uint32_t)(size_t)&fvertexData[0];
 	}
 
-	void IfcGeometry::AddGeometry(fuzzybools::Geometry geom)
+	/// <returns>false on any partial failure</returns>
+	bool IfcGeometry::AddGeometry(fuzzybools::Geometry geom)
 	{
-			
+		bool ret = true;
 		for (uint32_t i = 0; i < geom.numFaces; i++)
 		{
 			fuzzybools::Face f = geom.GetFace(i);
 			glm::dvec3 a = geom.GetPoint(f.i0);
 			glm::dvec3 b = geom.GetPoint(f.i1);
 			glm::dvec3 c = geom.GetPoint(f.i2);
-			AddFace(a, b, c);
+			if (!AddFace(a, b, c))
+				ret = false;
 		}
-
+		return ret;
 	}
 
 	uint32_t IfcGeometry::GetVertexDataSize()

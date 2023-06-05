@@ -23,6 +23,7 @@ set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 #collect source files
 file (GLOB WebIfcParsing parsing/*.cpp)
 file (GLOB_RECURSE WebIfcGeometry geometry/*.cpp)
+file (GLOB_RECURSE WebIfcGeometryH geometry/*.h)
 file (GLOB WebIfcSchema schema/*.cpp)
 file (GLOB WebIfcAPI web-ifc-api.cpp)
 file (GLOB WebIfcUtility utility/*.cpp)
@@ -56,11 +57,13 @@ FetchContent_MakeAvailable(cdt)
 FetchContent_GetProperties(cdt)
 
 Message("Downloading FUZZY")
-FetchContent_Declare(fuzzy GIT_REPOSITORY "https://github.com/CBenghi/fuzzy-bools" GIT_TAG "b1ebfdaf254a1b1fcc1b7e09a0450da96054d552" SOURCE_SUBDIR "../")
+FetchContent_Declare(fuzzy GIT_REPOSITORY "https://github.com/CBenghi/fuzzy-bools" GIT_TAG "a1a741fba5e16fa81b236167d27dacf4b7abaf7f" SOURCE_SUBDIR "../")
 FetchContent_MakeAvailable(fuzzy)
 FetchContent_GetProperties(fuzzy)
-file(RENAME ${fuzzy_SOURCE_DIR}/src ${fuzzy_SOURCE_DIR}/fuzzy RESULT $res)
-
+file (RENAME ${fuzzy_SOURCE_DIR}/src ${fuzzy_SOURCE_DIR}/fuzzy RESULT result) # specifying results continues even if rename was already performed
+file (GLOB FuzzyHeaders ${fuzzy_SOURCE_DIR}/fuzzy/*.h)
+message(${WebIfcGeometryH})
+ 
 Message("Downloads Finished")
 
 function(PARAM_SETTER THE_EXECUTABLE)
@@ -116,7 +119,7 @@ if (NOT EMSCRIPTEN)
 	target_compile_options(web-ifc PUBLIC "-DDEBUG_DUMP_SVG")
 
 	#build parameters for regression suite
-	add_executable (web-ifc-regression ${WebIfcSchema} ${WebIfcParsing} ${WebIfcUtility} ${WebIfcGeometry} "regression.cpp" "./test/io_helpers.cpp")
+	add_executable (web-ifc-regression ${WebIfcSchema} ${WebIfcParsing} ${WebIfcUtility} ${WebIfcGeometry} ${WebIfcGeometryH} ${FuzzyHeaders} "regression.cpp" "./test/io_helpers.cpp")
 	param_setter(web-ifc-regression)
 	#comment these to prevent debug files being generated
 	target_compile_options(web-ifc-regression PUBLIC "-DCSG_DEBUG_OUTPUT")

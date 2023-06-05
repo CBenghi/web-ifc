@@ -30,7 +30,7 @@ namespace webifc::utility
           case LogLevel::LOG_LEVEL_OFF:   return;
           default: return;
         }
-        std::cout << fullMsg << std::endl;
+        //std::cout << fullMsg << std::endl;
       }
     }
   }

@@ -83,7 +83,8 @@ void ProcessOneFile(std::string filepath)
     // std::ofstream outputFile("output.ifc");
     // outputFile << loader.DumpSingleObjectAsIFC(14363);
     // outputFile.close();
-
+    int tallyEntities = 0;
+    int errorEntities = 0;
     start = ms();
     webifc::geometry::IfcGeometryProcessor geometryLoader(loader,errorHandler,schemaManager,set.CIRCLE_SEGMENTS,set.COORDINATE_TO_ORIGIN);
     // std::vector<webifc::geometry::IfcFlatMesh> meshes;
@@ -92,25 +93,32 @@ void ProcessOneFile(std::string filepath)
         auto elements = loader.GetExpressIDsWithType(type);
         for (uint32_t i = 0; i < elements.size(); i++)
         {
+            tallyEntities++;
             webifc::geometry::IfcFlatMesh mesh = geometryLoader.GetFlatMesh(elements[i]);
             for (auto& geom : mesh.geometries)
             {
                 auto& flatGeom = geometryLoader.GetGeometry(geom.geometryExpressID);
                 flatGeom.GetVertexData();
             }
+            if (errorHandler.GetErrors().size() > 0)
+            {
+                errorEntities++;
+                errorHandler.ClearErrors();
+            }
             geometryLoader.Clear(); // removing the data
-            //meshes.push_back(std::move(mesh));
         }
     }
+    time = ms() - start;
+    /*
     auto errors = errorHandler.GetErrors();
     errorHandler.ClearErrors();
     for (auto error : errors)
     {
         std::cout << error.expressID << " " << error.ifcType << " " << std::to_string((int)error.type) << " " << error.message << std::endl;
     }
-    time = ms() - start;
-
+    */
     std::cout << " - Generating geometry took " << time << "ms" << std::endl;
+    std::cout << " - " << errorEntities << " of " << tallyEntities << " entities have errors" << std::endl;
 }
 
 void Benchmark()

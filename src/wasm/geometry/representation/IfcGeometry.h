@@ -19,7 +19,7 @@ namespace webifc::geometry {
 	{
 		void ReverseFaces();
 		uint32_t GetVertexData();
-		void AddGeometry(fuzzybools::Geometry geom);
+		bool AddGeometry(fuzzybools::Geometry geom);
 		uint32_t GetVertexDataSize();
 		uint32_t GetIndexData();
 		uint32_t GetIndexDataSize();
