@@ -86,7 +86,7 @@ void ProcessOneFile(std::string filepath)
     int tallyEntities = 0;
     int errorEntities = 0;
     start = ms();
-    webifc::geometry::IfcGeometryProcessor geometryLoader(loader,errorHandler,schemaManager,set.CIRCLE_SEGMENTS,set.COORDINATE_TO_ORIGIN);
+    webifc::geometry::IfcGeometryProcessor geometryLoader(loader,errorHandler,schemaManager,set.CIRCLE_SEGMENTS,set.COORDINATE_TO_ORIGIN, true);
     // std::vector<webifc::geometry::IfcFlatMesh> meshes;
     for (auto type : schemaManager.GetIfcElementList())
     {

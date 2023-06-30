@@ -8,7 +8,7 @@ export function generateInitialiser(type: Type, initialisersDone: Set<string>,bu
     if (type.isList)
     {
         if (initialisersDone.has(type.name)) return;
-        buffer.push(`\t${crc32(type.name.toUpperCase(),crcTable)}:(v:any) => new ${schemaName}.${type.name}(v),`);
+        buffer.push(`\t${crc32(type.name.toUpperCase(),crcTable)}:(v:any) => new ${schemaName}.${type.name}(v.map( (x:any) => x.value)),`);
         initialisersDone.add(type.name);
         return
     }
@@ -63,7 +63,7 @@ export function generatePropAssignment(p: Prop, i:number, types:Type[],schemaNam
 
     }
     else if (isType) {
-        if (type?.isList) content='new '+schemaName+'.'+p.type+'(v['+i+'])';
+        if (type?.isList) content='new '+schemaName+'.'+p.type+'(v['+i+'].map( (x:any) => x.value))';
         else content='new '+schemaName+'.'+p.type+'(v['+i+'].value)';
     }
     else if (p.primitive) content='v['+i+'].value';
@@ -409,6 +409,7 @@ export function parseElements(data:string)
             if (set && !optional) 
             {
                 let setLoc = split.indexOf("SET");
+                if (setLoc == -1) setLoc = split.indexOf("LIST")
                 if (split[setLoc+1].includes("[0:")) optional=true;
             }
             let type = split[split.length - 1].replace(";", "");
