@@ -131,6 +131,8 @@ BenchMarkResult ReportOneFile(std::filesystem::directory_entry file, bool tabSep
     auto geomStart = ms();
     webifc::geometry::IfcGeometryProcessor geometryLoader(loader, errorHandler, schemaManager, set.CIRCLE_SEGMENTS, set.COORDINATE_TO_ORIGIN, true);
     // std::vector<webifc::geometry::IfcFlatMesh> meshes;
+    long totalVertices = 0;
+    long totalIndices = 0;
     for (auto type : schemaManager.GetIfcElementList())
     {
         auto elements = loader.GetExpressIDsWithType(type);
@@ -143,6 +145,8 @@ BenchMarkResult ReportOneFile(std::filesystem::directory_entry file, bool tabSep
                 iProcessingGeom = geom.geometryExpressID;
                 auto& flatGeom = geometryLoader.GetGeometry(geom.geometryExpressID);
                 flatGeom.GetVertexData();
+                totalVertices += flatGeom.GetVertexDataSize();
+                totalIndices += flatGeom.GetIndexDataSize();
             }
             if (errorHandler.GetErrors().size() > 0)
             {
@@ -156,14 +160,19 @@ BenchMarkResult ReportOneFile(std::filesystem::directory_entry file, bool tabSep
 
     if (!tabSeparated)
     {
-        std::cout << " - Generating geometry took " << endtime - geomStart << " ms." << std::endl;
-        std::cout << " - " << errorEntities << " errors and " << tallyEntities << " entities." << std::endl;
-        std::cout << " - Total processing took " << endtime - firstStart << " ms." << std::endl << std::endl;
+        std::cout << " - Generating geometry took " << endtime - geomStart << " msec." << std::endl;
+        std::cout << " - Total processing took " << endtime - firstStart << " msec." << std::endl;
+        std::cout << " - " << totalVertices << " vertices count." << std::endl;
+        std::cout << " - " << totalIndices << " indices count." << std::endl;
+        std::cout << " - " << errorEntities << " errors." << std::endl;
+        std::cout << " - " << tallyEntities << " entities." << std::endl << std::endl;
     }
     else
     {
         std::cout << endtime - geomStart << "\t";
         std::cout << endtime - firstStart << "\t" ;
+        std::cout << totalVertices << "\t";
+        std::cout << totalIndices << "\t";
         std::cout << errorEntities << "\t" << tallyEntities << "\t";
         std::cout << std::endl;
     }
@@ -190,7 +199,7 @@ int Benchmark(char *argPath, bool tabSeparated)
         return 1;
     }
     if (tabSeparated)
-        std::cout << "File\tbytes\tsize\treading time\tgeom time\ttotal time\terror count\tentity count" << std::endl;
+        std::cout << "File\tbytes\tsize\treading msec\tgeom msec\ttotal msec\tvertices count\tindexes count\terror count\tentity count" << std::endl;
 
     if (isFile(path))
     {       
