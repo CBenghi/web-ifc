@@ -57,17 +57,22 @@ struct BenchMarkResult
 };
 
 
-void ProcessOneFile(std::string filepath)
+BenchMarkResult ProcessOneFile(std::filesystem::directory_entry file)
 {
-    // std::cout << "Running in " << std::filesystem::current_path() << std::endl;
-    std::string content = ReadFile(filepath);
+    std::string filePath = file.path().string();
+    std::cout << "Start: processing " << filePath << std::endl;
+    BenchMarkResult result;
+    result.file = filePath;
+    result.sizeBytes = file.file_size();
+    
     webifc::utility::LoaderSettings set;
     set.COORDINATE_TO_ORIGIN = true;
     webifc::utility::LoaderErrorHandler errorHandler;
     webifc::schema::IfcSchemaManager schemaManager;
     webifc::parsing::IfcLoader loader(set.TAPE_SIZE, set.MEMORY_LIMIT, errorHandler, schemaManager);
 
-    auto start = ms();
+    auto firstStart = ms();
+    std::string content = ReadFile(filePath);
     loader.LoadFile([&](char* dest, size_t sourceOffset, size_t destSize)
         {
             uint32_t length = std::min(content.size() - sourceOffset, destSize);
@@ -77,15 +82,15 @@ void ProcessOneFile(std::string filepath)
     // std::ofstream outputStream("D:/web-ifc/benchmark/ifcfiles/output.ifc");
     // outputStream << loader.DumpAsIFC();
     // exit(0);
-    auto time = ms() - start;
-    std::cout << " - Reading took " << time << "ms" << std::endl;
+    auto time = ms() - firstStart;
+    std::cout << " - Reading and loading took " << time << "ms." << std::endl;
 
     // std::ofstream outputFile("output.ifc");
     // outputFile << loader.DumpSingleObjectAsIFC(14363);
     // outputFile.close();
     int tallyEntities = 0;
     int errorEntities = 0;
-    start = ms();
+    auto geomStart = ms();
     webifc::geometry::IfcGeometryProcessor geometryLoader(loader,errorHandler,schemaManager,set.CIRCLE_SEGMENTS,set.COORDINATE_TO_ORIGIN, true);
     // std::vector<webifc::geometry::IfcFlatMesh> meshes;
     for (auto type : schemaManager.GetIfcElementList())
@@ -108,47 +113,33 @@ void ProcessOneFile(std::string filepath)
             geometryLoader.Clear(); // removing the data
         }
     }
-    time = ms() - start;
-    /*
-    auto errors = errorHandler.GetErrors();
-    errorHandler.ClearErrors();
-    for (auto error : errors)
-    {
-        std::cout << error.expressID << " " << error.ifcType << " " << std::to_string((int)error.type) << " " << error.message << std::endl;
-    }
-    */
-    std::cout << " - Generating geometry took " << time << "ms" << std::endl;
-    std::cout << " - " << errorEntities << " of " << tallyEntities << " entities have errors" << std::endl;
+    auto endtime = ms();
+    
+    std::cout << " - Generating geometry took " << endtime - geomStart << "ms." << std::endl;
+    std::cout << " - " << errorEntities << " errors and " << tallyEntities << " entities." << std::endl;
+    result.timeMS = time;
+    std::cout << " - Total processing took " << endtime - firstStart << "ms." << std::endl << std::endl;
+    return result;
 }
 
 int Benchmark(char *argPath)
 {
-    std::vector<BenchMarkResult> results;
     std::string path(argPath);
+    if (!std::filesystem::exists(path))
+    {
+        std::cout << "Path '" <<  path << "' not found." << std::endl;
+        return 1;
+    }
+
+    std::vector<BenchMarkResult> results;
     for (const auto& entry : std::filesystem::directory_iterator(path))
     {
-        if (entry.path().extension().string() != ".ifc")
+        if (!entry.is_regular_file() || entry.path().extension().string() != ".ifc")
         {
             continue;
-        }
-
-        std::string filePath = entry.path().string();
-        std::string filename = entry.path().filename().string();
-
-        std::cout << "Start: processing " << filePath << std::endl;
-        auto start = ms();
-        {
-            ProcessOneFile(filePath);
-        }
-        auto time = ms() - start;
-
-        BenchMarkResult result;
-        result.file = filename;
-        result.timeMS = time;
-        result.sizeBytes = entry.file_size();
+        }       
+        auto result = ProcessOneFile(entry);
         results.push_back(result);
-
-        std::cout << "End: Processing " << result.file << " took " << time << "ms" << std::endl << std::endl;
     }
 
     std::cout << std::endl;
