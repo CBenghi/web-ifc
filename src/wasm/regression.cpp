@@ -121,10 +121,10 @@ void ProcessOneFile(std::string filepath)
     std::cout << " - " << errorEntities << " of " << tallyEntities << " entities have errors" << std::endl;
 }
 
-void Benchmark()
+int Benchmark(char *argPath)
 {
     std::vector<BenchMarkResult> results;
-    std::string path = "C:/Data/Ifc/_DebugSupport";
+    std::string path(argPath);
     for (const auto& entry : std::filesystem::directory_iterator(path))
     {
         if (entry.path().extension().string() != ".ifc")
@@ -165,13 +165,28 @@ void Benchmark()
     std::cout << std::endl;
     std::cout << "Average: " << avgMBsec << " MB/sec" << std::endl;
     std::cout << std::endl;
+    return 0;
 }
 
-
-
-int main()
+int main(int argc, char *argv[])
 {
-    std::cout << "Starting regression suite main()" << std::endl;
-    Benchmark();
+    if (argc == 1 || argc >= 1 && (strcmp(argv[1],"help")==0))
+    {
+        std::cout << "No argument passed to regression suite main()" << std::endl;
+        std::cout << "Options:" << std::endl;
+        std::cout << " - regression benchmark <folder> (performance evaluation of ifc files in folder)" << std::endl;
+        std::cout << " - regression help (prints this help)" << std::endl;
+        return 1;
+    }
+    if (argc > 1 && strcmp(argv[1],"benchmark") == 0)
+    {
+        if (argc == 2)
+        {
+            std::cout << "The benchmark option requires a further parameter identifying the folder to process." << std::endl;
+            return 1;
+        }
+        return Benchmark(argv[2]);
+    }
+    std::cout << "Invalid command line options, use 'regression help' for instructions." << std::endl;
     return 0;
 }

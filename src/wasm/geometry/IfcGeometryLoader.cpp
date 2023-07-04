@@ -1803,7 +1803,7 @@ default:
 }
   
   #ifdef DEBUG_DUMP_SVG
-      io::DumpSVGCurve(curve.points, "partial_curve.html");
+      io::DumpSVGCurveXY(curve.points, "partial_curve.html");
   #endif
 
 }
