@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-
 #include <iostream>
 #include <fstream>
 #include <filesystem>
-#include "test/io_helpers.h"
+#include <locale>
+#include <signal.h> // used to stop with feedback on ctrl-c
 
+#include "test/io_helpers.h"
 #include "parsing/IfcLoader.h"
 #include "schema/IfcSchemaManager.h"
 #include "geometry/IfcGeometryProcessor.h"
 #include "utility/LoaderError.h"
 #include "utility/LoaderSettings.h"
 #include "schema/ifc-schema.h"
-
 
 using namespace webifc::io;
 
@@ -38,7 +38,6 @@ std::string ReadFile(std::string filename)
 void SpecificLoadTest(webifc::parsing::IfcLoader &loader, webifc::geometry::IfcGeometryProcessor &geometryLoader, uint64_t num)
 {
     auto walls = loader.GetExpressIDsWithType(webifc::schema::IFCSLAB);
-
     bool writeFiles = true;
 
     auto mesh = geometryLoader.GetMesh(num);
@@ -56,15 +55,49 @@ struct BenchMarkResult
     long long sizeBytes;
 };
 
+int iProcessingGeom = -1;
 
-BenchMarkResult ProcessOneFile(std::filesystem::directory_entry file)
+// Define the function to be called when ctrl-c (SIGINT) is sent to process
+void signal_callback_handler(int signum) {
+    std::cout.imbue(std::locale("C"));
+    std::cout << "Stopped on entity: #" << iProcessingGeom << std::endl;
+    // Terminate program
+    exit(signum);
+}
+
+
+BenchMarkResult ReportOneFile(std::filesystem::directory_entry file, bool tabSeparated)
 {
     std::string filePath = file.path().string();
-    std::cout << "Start: processing " << filePath << std::endl;
     BenchMarkResult result;
     result.file = filePath;
     result.sizeBytes = file.file_size();
-    
+    std::string unit = "B";
+    iProcessingGeom = -1;
+    double sz = file.file_size();
+    while (sz > 1024)
+    {
+        sz /= 1024;
+        if (unit == "B")
+            unit = "Kb";
+        else if (unit == "Kb")
+            unit = "Mb";
+        else if (unit == "Mb")
+            unit = "Gb";
+    }
+
+    if (!tabSeparated)
+    {
+        std::cout.imbue(std::locale(""));
+        std::cout << "Processing " << filePath << std::endl;
+        std::cout << " - size is " << result.sizeBytes << " bytes." << std::endl;
+    }
+    else
+        std::cout << filePath << "\t" << result.sizeBytes << "\t" << sz << " " << unit << "\t";
+
+    // registering cancellation handler
+    signal(SIGINT, signal_callback_handler);
+
     webifc::utility::LoaderSettings set;
     set.COORDINATE_TO_ORIGIN = true;
     webifc::utility::LoaderErrorHandler errorHandler;
@@ -82,8 +115,13 @@ BenchMarkResult ProcessOneFile(std::filesystem::directory_entry file)
     // std::ofstream outputStream("D:/web-ifc/benchmark/ifcfiles/output.ifc");
     // outputStream << loader.DumpAsIFC();
     // exit(0);
-    auto time = ms() - firstStart;
-    std::cout << " - Reading and loading took " << time << "ms." << std::endl;
+
+    auto midtime = ms();
+
+    if (!tabSeparated)
+        std::cout << " - Reading and loading took " << midtime - firstStart << " ms." << std::endl;
+    else
+        std::cout << midtime - firstStart << "\t";
 
     // std::ofstream outputFile("output.ifc");
     // outputFile << loader.DumpSingleObjectAsIFC(14363);
@@ -91,7 +129,7 @@ BenchMarkResult ProcessOneFile(std::filesystem::directory_entry file)
     int tallyEntities = 0;
     int errorEntities = 0;
     auto geomStart = ms();
-    webifc::geometry::IfcGeometryProcessor geometryLoader(loader,errorHandler,schemaManager,set.CIRCLE_SEGMENTS,set.COORDINATE_TO_ORIGIN, true);
+    webifc::geometry::IfcGeometryProcessor geometryLoader(loader, errorHandler, schemaManager, set.CIRCLE_SEGMENTS, set.COORDINATE_TO_ORIGIN, true);
     // std::vector<webifc::geometry::IfcFlatMesh> meshes;
     for (auto type : schemaManager.GetIfcElementList())
     {
@@ -102,6 +140,7 @@ BenchMarkResult ProcessOneFile(std::filesystem::directory_entry file)
             webifc::geometry::IfcFlatMesh mesh = geometryLoader.GetFlatMesh(elements[i]);
             for (auto& geom : mesh.geometries)
             {
+                iProcessingGeom = geom.geometryExpressID;
                 auto& flatGeom = geometryLoader.GetGeometry(geom.geometryExpressID);
                 flatGeom.GetVertexData();
             }
@@ -114,15 +153,35 @@ BenchMarkResult ProcessOneFile(std::filesystem::directory_entry file)
         }
     }
     auto endtime = ms();
-    
-    std::cout << " - Generating geometry took " << endtime - geomStart << "ms." << std::endl;
-    std::cout << " - " << errorEntities << " errors and " << tallyEntities << " entities." << std::endl;
-    result.timeMS = time;
-    std::cout << " - Total processing took " << endtime - firstStart << "ms." << std::endl << std::endl;
+
+    if (!tabSeparated)
+    {
+        std::cout << " - Generating geometry took " << endtime - geomStart << " ms." << std::endl;
+        std::cout << " - " << errorEntities << " errors and " << tallyEntities << " entities." << std::endl;
+        std::cout << " - Total processing took " << endtime - firstStart << " ms." << std::endl << std::endl;
+    }
+    else
+    {
+        std::cout << endtime - geomStart << "\t";
+        std::cout << endtime - firstStart << "\t" ;
+        std::cout << errorEntities << "\t" << tallyEntities << "\t";
+        std::cout << std::endl;
+    }
+
+    result.timeMS = endtime - firstStart;
+
     return result;
 }
 
-int Benchmark(char *argPath)
+
+bool isDirectory(const std::string& path) {
+    return std::filesystem::is_directory(path);
+}
+bool isFile(const std::string& path) {
+    return std::filesystem::is_regular_file(path);
+}
+
+int Benchmark(char *argPath, bool tabSeparated)
 {
     std::string path(argPath);
     if (!std::filesystem::exists(path))
@@ -130,15 +189,24 @@ int Benchmark(char *argPath)
         std::cout << "Path '" <<  path << "' not found." << std::endl;
         return 1;
     }
+    if (tabSeparated)
+        std::cout << "File\tbytes\tsize\treading time\tgeom time\ttotal time\terror count\tentity count" << std::endl;
 
+    if (isFile(path))
+    {       
+        std::filesystem::directory_entry entry(path);
+        ReportOneFile(entry, tabSeparated);
+        return 0;
+    }
     std::vector<BenchMarkResult> results;
+    
     for (const auto& entry : std::filesystem::directory_iterator(path))
     {
         if (!entry.is_regular_file() || entry.path().extension().string() != ".ifc")
         {
             continue;
         }       
-        auto result = ProcessOneFile(entry);
+        auto result = ReportOneFile(entry, tabSeparated);
         results.push_back(result);
     }
 
@@ -163,20 +231,32 @@ int main(int argc, char *argv[])
 {
     if (argc == 1 || argc >= 1 && (strcmp(argv[1],"help")==0))
     {
-        std::cout << "No argument passed to regression suite main()" << std::endl;
-        std::cout << "Options:" << std::endl;
-        std::cout << " - regression benchmark <folder> (performance evaluation of ifc files in folder)" << std::endl;
-        std::cout << " - regression help (prints this help)" << std::endl;
+        std::cout << "Command line options are: " << std::endl;
+        std::cout << "  benchmark <source>        geometry performance evaluation of ifc files in folder" << std::endl;
+        std::cout << "  benchmarktable <source>   geometry performance evaluation (tab separated, one line per file)" << std::endl;
+        std::cout << "  help                      prints this help" << std::endl;
+        std::cout << std::endl;
+        std::cout << "  <source>                  can be either an ifc file or a folder" << std::endl;
+        std::cout << std::endl;
+        std::cout << "In case the program hangs, ctrl-c reports the geometry entity being meshed." << std::endl;
         return 1;
     }
-    if (argc > 1 && strcmp(argv[1],"benchmark") == 0)
+    if (argc > 1 
+        && 
+        (
+            strcmp(argv[1],"benchmark") == 0 ||
+            strcmp(argv[1],"benchmarktable") == 0 
+       ))
     {
         if (argc == 2)
         {
             std::cout << "The benchmark option requires a further parameter identifying the folder to process." << std::endl;
             return 1;
         }
-        return Benchmark(argv[2]);
+        if (strcmp(argv[1], "benchmarktable") == 0)
+            return Benchmark(argv[2], true);
+        else
+            return Benchmark(argv[2], false);
     }
     std::cout << "Invalid command line options, use 'regression help' for instructions." << std::endl;
     return 0;
