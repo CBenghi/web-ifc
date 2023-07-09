@@ -31,22 +31,18 @@ namespace webifc::geometry {
 		if (fvertexData.size() != vertexData.size())
 		{
 			fvertexData.resize(vertexData.size());
-			// vertexData is a multiple of VERTEX_FORMAT_SIZE_FLOATS, which can change
-			// from version to version, we trust Fuzzy-Bool and copy the whole collection
 			for (size_t i = 0; i < vertexData.size(); i ++)
 			{
+				// The vector was previously copied in batches of 6, but
+				// copying single entry at a time is more resilient if the 
+				// underlying geometry lib changes the treatment of normals
 				fvertexData[i] = vertexData[i];
 			}
-
-			// cleanup
-			// vertexData = {};
 		}
-
 		if (fvertexData.empty())
 		{
 			return 0;
 		}
-
 		return (uint32_t)(size_t)&fvertexData[0];
 	}
 
